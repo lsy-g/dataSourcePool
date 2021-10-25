@@ -3,9 +3,6 @@ package pool;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -23,17 +20,18 @@ import javax.sql.DataSource;
  */
 public class ConnPool implements DataSource {
 
-    //使用LinkedList集合存放数据库连接
-    private static LinkedList<Connection> connPool = new LinkedList<Connection>();
-    // 连接总数
+    private static LinkedList<Connection> connPool = new LinkedList<>();
     private static String driver;
     private static String url;
     private static String user;
     private static String password;
 
+    // 最大连接数
     private static int maxSize;
+    // todo 超时回收非核心空闲连接
     private static int survivalTime;
 
+    // 计数器，统计连接池连接数
     private static AtomicInteger totalSize= new AtomicInteger(0);;
 
     //在静态代码块中加载配置文件
@@ -76,16 +74,16 @@ public class ConnPool implements DataSource {
     public Connection getConnection() throws SQLException {
         if(connPool.size() > 0){
             //从集合中获取一个连接
-            final Connection conn = connPool.removeFirst();
+            Connection conn = connPool.removeFirst();
             //返回Connection的代理对象
             return conn;
         }else{
             if (totalSize.intValue()<maxSize){
                 // 添加连接
                 Connection conn = DriverManager.getConnection(url, user, password);
-//                connPool.add(conn);
+                connPool.add(conn);
                 totalSize.incrementAndGet();
-                return conn;
+                return this.getConnection();
             }else {
                 // 连接到上限
                 throw new RuntimeException("数据库繁忙，稍后再试");
@@ -126,6 +124,12 @@ public class ConnPool implements DataSource {
         return null;
     }
 
+    public static AtomicInteger getTotalSize() {
+        return totalSize;
+    }
 
+    public static void setTotalSize(AtomicInteger totalSize) {
+        ConnPool.totalSize = totalSize;
+    }
 }
 

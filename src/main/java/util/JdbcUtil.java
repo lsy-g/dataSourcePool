@@ -30,7 +30,7 @@ public class JdbcUtil {
     /**
      * 关闭连接
      */
-    public static void CloseConnection(Connection conn, Statement st, ResultSet rs) throws SQLException{
+    public static void closeConnection(Connection conn, Statement st, ResultSet rs) throws SQLException{
         // 关闭存储查询结果的ResultSet对象
         if(rs != null){
             rs.close();
@@ -41,9 +41,11 @@ public class JdbcUtil {
             st.close();
         }
 
-        // 关闭连接
+        // 关闭连接,计数器减1
         if(conn != null){
             conn.close();
+            connPool.getTotalSize().decrementAndGet();
+            System.out.println(connPool.getTotalSize());
         }
     }
 
